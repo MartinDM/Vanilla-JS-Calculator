@@ -15,7 +15,7 @@ const displayEl = document.querySelector('.calculator_display');
 // States
 let isCleared: boolean = true;
 let operatorActive: boolean = false;
-const calcUtils = ['equals', 'clear'];
+const calcUtils = ['equals', 'clear', 'decimal'];
 
 const buttons = [
   ...calculator?.querySelectorAll('button'),
@@ -35,6 +35,7 @@ const clearData = () => {
   delete calculator.dataset.operation;
   delete calculator.dataset.firstValue;
   delete calculator.dataset.secondValue;
+  isCleared = true;
 };
 
 const calculate = ({ ...dataset }: Dataset): void => {
@@ -42,7 +43,7 @@ const calculate = ({ ...dataset }: Dataset): void => {
   if (dataset.operation === 'add') {
     result = (
       parseFloat(dataset.firstValue) + parseFloat(dataset.secondValue)
-    ).toString();
+    ).toString(); 
   }
   if (dataset.operation === 'subtract') {
     result = (
@@ -61,25 +62,35 @@ const calculate = ({ ...dataset }: Dataset): void => {
     if (checkResult) {
       result = checkResult.toString();
     }
-  }
-  displayEl.textContent = result || dataset.firstValue;
-  clearData();
-
+  } 
+  displayEl.textContent = result || dataset.firstValue; 
   // Use resulting value as first input
+  clearData()
   calculator.dataset.firstValue = result || '0';
 };
 
 const handleOperation = (operation: string) => {
-  applyActiveAction(operation);
-  operatorActive = true;
-
+  
   if (operation === 'clear') {
-    displayEl.textContent = '0';
-    isCleared = true;
+    displayEl.textContent = '0'; 
     operatorActive = false;
     clearData();
     return;
+  } 
+
+  // Only add if no decimals entered
+  if (operation === 'decimal' && !!displayEl.textContent.indexOf('.') ) {
+      operatorActive = false
+      if (displayEl.textContent === '0' ) {
+        displayEl.textContent = displayEl.textContent = '0.'
+      } else {
+        displayEl.textContent = displayEl.textContent + '.'
+      }
+      return
   }
+
+  applyActiveAction(operation);
+  operatorActive = true;
 
   // Log values in state
   // Has first two steps - add third
@@ -93,7 +104,9 @@ const handleOperation = (operation: string) => {
 
   if (operation === 'equals') {
     if (!calculator.dataset.operation || !calculator.dataset.secondValue) {
-      return (displayEl.textContent = calculator.dataset.firstValue || '0');
+      // Can't do a calculation
+      displayEl.textContent = calculator.dataset.firstValue || '0';
+      return
     }
     calculate({ ...calculator.dataset });
   }
@@ -107,11 +120,12 @@ const appendDisplayValue = (newVal: string) => {
   if (
     (displayEl.textContent === '0' && newVal === '0' && !isCleared) ||
     (displayEl.textContent === '0' && isCleared) ||
-    operatorActive
+    operatorActive && newVal !== '.'  
   ) {
     displayEl.textContent = newVal;
   } else {
     displayEl.textContent = displayEl.textContent += newVal;
+
   }
   operatorActive = false;
   isCleared = false;

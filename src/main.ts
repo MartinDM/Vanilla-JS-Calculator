@@ -6,11 +6,13 @@ type Dataset = {
   firstValue?: string;
   operation?: Operations;
   secondValue?: string;
+  previousKey?: string;
 };
 
 // Elements
 const calculator = document.querySelector('.calculator') as HTMLElement;
 const displayEl = document.querySelector('.calculator_display');
+const clearButton = calculator.querySelector('[data-operation=clear]');
 
 // States
 let isCleared: boolean = true;
@@ -22,6 +24,7 @@ const buttons = [
 ] as HTMLButtonElement[];
 
 const applyActiveAction = (action: string) => {
+  operatorActive = true;
   if (!calcUtils.includes(action)) {
     buttons.forEach((b) => {
       if (b.dataset.operation === action) {
@@ -35,6 +38,7 @@ const clearData = () => {
   delete calculator.dataset.operation;
   delete calculator.dataset.firstValue;
   delete calculator.dataset.secondValue;
+  delete calculator.dataset.previousKey;
   isCleared = true;
 };
 
@@ -43,7 +47,7 @@ const calculate = ({ ...dataset }: Dataset): void => {
   if (dataset.operation === 'add') {
     result = (
       parseFloat(dataset.firstValue) + parseFloat(dataset.secondValue)
-    ).toString(); 
+    ).toString();
   }
   if (dataset.operation === 'subtract') {
     result = (
@@ -62,35 +66,36 @@ const calculate = ({ ...dataset }: Dataset): void => {
     if (checkResult) {
       result = checkResult.toString();
     }
-  } 
-  displayEl.textContent = result || dataset.firstValue; 
+  }
+  displayEl.textContent = result || dataset.firstValue;
   // Use resulting value as first input
-  clearData()
+  clearData();
   calculator.dataset.firstValue = result || '0';
 };
 
 const handleOperation = (operation: string) => {
-  
   if (operation === 'clear') {
-    displayEl.textContent = '0'; 
-    operatorActive = false;
-    clearData();
+    displayEl.textContent = '0';
+    clearButton.textContent = 'AC';
+    if (calculator.dataset.previousKey === 'clear') {
+      clearData();
+      return;
+    }
+    calculator.dataset.previousKey = 'clear';
     return;
-  } 
+  }
 
-  // Only add if no decimals entered
-  if (operation === 'decimal' && !!displayEl.textContent.indexOf('.') ) {
-      operatorActive = false
-      if (displayEl.textContent === '0' ) {
-        displayEl.textContent = displayEl.textContent = '0.'
-      } else {
-        displayEl.textContent = displayEl.textContent + '.'
-      }
-      return
+  if (operation === 'decimal') {
+    operatorActive = false;
+    clearButton.textContent = 'CE';
+    // Only add if no decimals entered
+    if (displayEl.textContent.indexOf('.') < 0) {
+      displayEl.textContent = displayEl.textContent + '.';
+    }
+    return;
   }
 
   applyActiveAction(operation);
-  operatorActive = true;
 
   // Log values in state
   // Has first two steps - add third
@@ -106,13 +111,14 @@ const handleOperation = (operation: string) => {
     if (!calculator.dataset.operation || !calculator.dataset.secondValue) {
       // Can't do a calculation
       displayEl.textContent = calculator.dataset.firstValue || '0';
-      return
+      return;
     }
     calculate({ ...calculator.dataset });
   }
 };
 
 const handleNumber = (number: string) => {
+  clearButton.textContent = 'CE';
   appendDisplayValue(number);
 };
 
@@ -120,12 +126,11 @@ const appendDisplayValue = (newVal: string) => {
   if (
     (displayEl.textContent === '0' && newVal === '0' && !isCleared) ||
     (displayEl.textContent === '0' && isCleared) ||
-    operatorActive && newVal !== '.'  
+    (operatorActive && newVal !== '.')
   ) {
     displayEl.textContent = newVal;
   } else {
     displayEl.textContent = displayEl.textContent += newVal;
-
   }
   operatorActive = false;
   isCleared = false;
